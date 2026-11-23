@@ -1,26 +1,12 @@
 # TransLinkInsight: A Policy & Patronage Agent for South East Queensland
 
-An MCP-based AI agent (built on the SMAC starter kit for REIT7820) that answers
+An MCP-based AI agent (built on the SMAC starter kit) that answers
 questions about how public transport **service quality** relates to **patronage**
 in South East Queensland, using open TransLink performance data.
 
 > **Scope note:** This tool reports changes and correlations only.
 > It does not claim causal effects (no control group, no confounder adjustment).
 
-## Files
-
-```
-src/agents/policy.py          your agent - this is where you work
-src/eval/tasks.policy.json    your evaluation cases
-prompt.txt                    a question for ask.py - write your own
-src/descriptions.md           your v1 and v2 tool descriptions - a submission
-src/data.py                   open-data fetching, cached
-src/                          the rest is shared plumbing: read it, don't edit it
-application/                  the console, which calls your agent the way the Orchestrator will
-.env                          your keys - git-ignored, never commit it
-logs/                         usage.jsonl (every Claude call) and W&B files
-REIT7820_mcp_spec_v1.0.1.md   the contract your agent must satisfy
-```
 
 ## Demo
 
@@ -43,17 +29,6 @@ Design choices worth noting:
 - Returns sample size and significance flag, plus fixed caveats in every response
 - Declines out-of-range or unsupported requests with the standard `out_of_scope` envelope
 
-## Data
-
-All data comes from the Queensland Government open data portal
-(dataset: *Translink monthly performance data*, CC-BY 3.0).
-
-| Signal | Source resource | Coverage |
-|---|---|---|
-| Patronage | [..] | 2023-12 to 2026-05 |
-| Punctuality (Citytrain / Bus / Tram) | [..] | monthly |
-| Complaints (go card) | [..] | weekly, network-wide |
-| Customer experience | [..] | from 2025-12 |
 
 ## Architecture
 
@@ -64,7 +39,7 @@ User question → Router (LLM) → MCP server (policy) → tools → data.py →
 
 ## Getting Started
 
-**Prerequisites:** Docker, Python 3.10+ [confirm]
+**Prerequisites:** Docker, Python 3.10+ 
 
 ```bash
 git clone <repo-url>
@@ -104,31 +79,9 @@ src/
 docker/compose.yml
 ```
 
-## References
-
-- Wagner et al. (2002), segmented regression for interrupted time series
-- Hawa et al. (2023), complaints as a proxy for perceived service quality
-- [add the rest from your report]
-
 ## License & Acknowledgements
 
 Data: Queensland Government, CC-BY 3.0. Built for REIT7820, The University of Queensland.
-
-```bash
-docker compose up -d --build                        # your agent on :8000, the console on :8080
-docker compose exec policy python preflight.py --fetch    # check Python, keys and datasets
-open http://localhost:8080                          # the console
-```
-
-If `up` reports that your agent failed to start, `docker compose logs policy`
-says why. It is usually a missing or rejected key.
-
-```bash
-docker compose up -d --build policy      # after you edit your code - a plain restart runs the old code
-docker compose logs -f policy            # your agent's log
-docker compose ps                       # what is running
-docker compose down                     # stop
-```
 
 ## Evaluate
 
@@ -184,10 +137,4 @@ to your agent the way the Orchestrator does and runs six checks. Put the
 
 ```bash
 docker compose run --rm handshake
-```
-
-It ends with `HANDSHAKE PASSED`, or tells you what to fix. It also writes
-`handshake_report.json`, which you commit as your proof.
-
-
 ```
