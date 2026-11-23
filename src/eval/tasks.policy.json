@@ -1,0 +1,200 @@
+[
+  {
+    "_category": "hand-calculated / authoritative value",
+    "prompt": "How many Bus trips were there in SEQ each month from January to March 2024?",
+    "tools": [
+      {"name": "get_patronage", "input": {"mode": "bus", "start_month": "2024-01", "end_month": "2024-03"}}
+    ],
+    "output": {
+      "complete_range": true,
+      "modes": {
+        "Bus": [
+          {"month": "2024-01", "trips": 7287187},
+          {"month": "2024-02", "trips": 9504336},
+          {"month": "2024-03", "trips": 10010413}
+        ]
+      }
+    }
+  },
+
+  {
+    "_category": "malformed input",
+    "prompt": "Bus patronage from 2024/01 to 2024-03?",
+    "tools": [
+      {"name": "get_patronage", "input": {"mode": "bus", "start_month": "2024/01", "end_month": "2024-03"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "start_month"}
+  },
+  {
+    "_category": "out of coverage - unsupported mode",
+    "prompt": "Ferry patronage for 2024?",
+    "tools": [
+      {"name": "get_patronage", "input": {"mode": "ferry", "start_month": "2024-01", "end_month": "2024-12"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "ferry"}
+  },
+  {
+    "_category": "out of coverage - before dataset start",
+    "prompt": "Citytrain patronage in 1999?",
+    "tools": [
+      {"name": "get_patronage", "input": {"mode": "citytrain", "start_month": "1999-01", "end_month": "1999-06"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "2023-12"}
+  },
+
+  {
+    "_category": "faithfulness - partial coverage must not be presented as complete",
+    "_note": "Dataset's known end is 2026-05; this request runs to 2026-08, three months past it.",
+    "prompt": "SEQ patronage from April to August 2026?",
+    "tools": [
+      {"name": "get_patronage", "input": {"start_month": "2026-04", "end_month": "2026-08"}}
+    ],
+    "output": {"complete_range": false}
+  },
+
+  {
+    "_category": "hand-calculated value",
+    "_note": "-0.0037 as a decimal fraction = -0.37%, independently hand-calculated from raw Citytrain on-time-running figures (Dec-2023 vs Jul-2024), not copied from this tool's own output.",
+    "prompt": "How much did Citytrain punctuality change from December 2023 to July 2024?",
+    "tools": [
+      {"name": "get_mode_trend", "input": {"mode": "citytrain", "metric": "punctuality", "start_month": "2023-12", "end_month": "2024-07"}}
+    ],
+    "output": {"change_pct": -0.0037}
+  },
+
+  {
+    "_category": "malformed input",
+    "prompt": "Citytrain punctuality trend from 2024-13 to 2024-07?",
+    "tools": [
+      {"name": "get_mode_trend", "input": {"mode": "citytrain", "metric": "punctuality", "start_month": "2024-13", "end_month": "2024-07"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "start_month"}
+  },
+  {
+    "_category": "out of coverage - deprecated metric",
+    "prompt": "What is the reliability for SEQ Bus in 2024?",
+    "tools": [
+      {"name": "get_mode_trend", "input": {"mode": "bus", "metric": "reliability", "start_month": "2024-01", "end_month": "2024-12"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "reliability"}
+  },
+
+  {
+    "_category": "out of coverage - unsupported mode",
+    "prompt": "Ferry punctuality trend for 2024?",
+    "tools": [
+      {"name": "get_mode_trend", "input": {"mode": "ferry", "metric": "punctuality", "start_month": "2024-01", "end_month": "2024-12"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "ferry"}
+  },
+
+  {
+    "_category": "out of coverage - before unified window start",
+    "prompt": "Citytrain patronage trend in 1999?",
+    "tools": [
+      {"name": "get_mode_trend", "input": {"mode": "citytrain", "metric": "patronage", "start_month": "1999-01", "end_month": "1999-06"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "2023-12"}
+  },
+
+ {
+    "_category": "hand-calculated value (fixed window: Dec 2023 - Mar 2025)",
+    "_note": "Ground truth recomputed from Dec 2023 to Mar 2025 (16 months, fixed window). Data from Oct 2026 onwards ignored to isolate research variable (description design, not data freshness). Original exploratory values from longer window (n=29): r_raw=-0.0143, r_diff=0.449 are NOT used here.",
+    "prompt": "Is there a relationship between SEQ patronage and the complaint rate from 2024-12 to 2025-03?",
+    "tools": [
+      {
+        "name": "analyze_service_relationship",
+        "input": {
+          "signal_a": "patronage",
+          "signal_b": "complaint_rate",
+          "start_month": "2024-12",
+          "end_month": "2025-03"
+        }
+      }
+    ],
+    "output": {
+      "r_raw": 0.9747,
+      "r_diff": 	0.9843,
+      "n": 4,
+      "significant": true
+    }
+  },
+
+{
+    "_category": "hand-calculated value (fixed window: Dec 2023 - May 2025)",
+    "_note": "Independently verified via fixed window (Dec 2023 to May 2025, 18 months). Data beyond May 2025 ignored per fixed-window strategy. Original exploratory values from longer window (n=19+): r_raw=0.2227, r_diff=-0.1888 are NOT used here.",
+    "prompt": "Is there a relationship between SEQ patronage and on-time running from 2023-12 to 2025-03?",
+    "tools": [
+      {
+        "name": "analyze_service_relationship",
+        "input": {
+          "signal_a": "patronage",
+          "signal_b": "on_time_running",
+          "start_month": "2023-12",
+          "end_month": "2025-03"
+        }
+      }
+    ],
+    "output": {
+      "r_raw": 0.0952,
+      "r_diff": 	-0.1733,
+      "n": 16,
+      "significant": false
+    }
+  },
+
+  {
+    "_category": "malformed input - identical signals",
+    "prompt": "Compare patronage with patronage?",
+    "tools": [
+      {"name": "analyze_service_relationship", "input": {"signal_a": "patronage", "signal_b": "patronage"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "different"}
+  },
+
+  {
+    "_category": "malformed input - invalid signal name",
+    "prompt": "Compare patronage with reliability?",
+    "tools": [
+      {"name": "analyze_service_relationship", "input": {"signal_a": "patronage", "signal_b": "reliability"}}
+    ],
+    "output": {"status": "out_of_scope", "reason": "signal"}
+  },
+
+  {
+    "_category": "faithfulness - short-window signal with range adjustment (fixed window: Jan 2026 - Jun 2026)",
+    "_note": "customer_experience is only published from Dec-2025 onward (~6 months retention). Using fixed window Jan 2026 - Jun 2026 (6 months available). Tool must set range_adjusted=true and report effective_start_month to prevent silent misrepresentation.",
+    "prompt": "Is there a relationship between SEQ patronage and customer experience ratings?",
+    "tools": [
+      {
+        "name": "analyze_service_relationship",
+        "input": {
+          "signal_a": "patronage",
+          "signal_b": "customer_experience",
+          "start_month": "2026-01",
+          "end_month": "2026-06"
+        }
+      }
+    ],
+    "output": {
+      "range_adjusted": false,
+      "effective_start_month": "2026-01",
+      "effective_end_month": "2026-06",
+      "n": 6,
+      "r_raw": -0.0191,
+      "r_diff": 0.6137,
+      "significant": false
+    }
+  },
+
+  {
+    "_category": "multi-step - cross-tool consistency",
+    "_note": "Two different tools reading the same underlying Citytrain patronage series should agree on the Dec-2023 and Jul-2024 values. get_patronage's raw listing (asserted in a separate case above) already confirms these figures independently; this case checks get_mode_metric_trend's endpoint values against the same known numbers after a preceding get_patronage call over the same range.",
+    "prompt": "Confirm Citytrain patronage coverage for Dec 2023 to Jul 2024, then report how patronage changed over that period.",
+    "tools": [
+      {"name": "get_patronage", "input": {"mode": "citytrain", "start_month": "2023-12", "end_month": "2024-07"}},
+      {"name": "get_mode_trend", "input": {"mode": "citytrain", "metric": "patronage", "start_month": "2023-12", "end_month": "2024-07"}}
+    ],
+    "output": {"start_value": 2958924, "end_value": 3950434, "change_pct": 0.3351}
+  }
+]
