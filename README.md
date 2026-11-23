@@ -1,7 +1,11 @@
-# Policy & Patronage agent
+# TransLinkInsight: A Policy & Patronage Agent for South East Queensland
 
-Your agent for the Smart Mobility Agent Collective: an MCP server that already
-runs on real Queensland open data. The tools are yours to build.
+An MCP-based AI agent (built on the SMAC starter kit for REIT7820) that answers
+questions about how public transport **service quality** relates to **patronage**
+in South East Queensland, using open TransLink performance data.
+
+> **Scope note:** This tool reports changes and correlations only.
+> It does not claim causal effects (no control group, no confounder adjustment).
 
 ## Files
 
@@ -18,22 +22,97 @@ logs/                         usage.jsonl (every Claude call) and W&B files
 REIT7820_mcp_spec_v1.0.1.md   the contract your agent must satisfy
 ```
 
-## Setup
+## Demo
 
-Install Docker Desktop, then create `.env` at the repository root:
+Example questions:
+- "How did Citytrain punctuality change from 2023-12 to 2024-07?"
+- "Is there a relationship between SEQ patronage and on-time running?"
 
-```bash
-ANTHROPIC_API_KEY=...
-WANDB_API_KEY=...
-WANDB_PROJECT= policy     # optional, defaults to reit7820-eval
-WANDB_ENTITY=...                 # optional, your W&B team
+## Features
+
+Three MCP tools (policy domain):
+
+| Tool | Purpose |
+|---|---|
+| `get_patronage` | Monthly SEQ patronage by mode (bus / citytrain / tram) |
+| `get_mode_trend` | Change in patronage or punctuality for a mode over a window |
+| `analyze_service_relationship` | Pearson r (raw and first-differenced) between two network-level signals: patronage, on-time running, complaint rate, customer experience |
+
+Design choices worth noting:
+- Reports both raw-level and first-differenced correlations, to avoid spurious results from shared trends
+- Returns sample size and significance flag, plus fixed caveats in every response
+- Declines out-of-range or unsupported requests with the standard `out_of_scope` envelope
+
+## Data
+
+All data comes from the Queensland Government open data portal
+(dataset: *Translink monthly performance data*, CC-BY 3.0).
+
+| Signal | Source resource | Coverage |
+|---|---|---|
+| Patronage | [..] | 2023-12 to 2026-05 |
+| Punctuality (Citytrain / Bus / Tram) | [..] | monthly |
+| Complaints (go card) | [..] | weekly, network-wide |
+| Customer experience | [..] | from 2025-12 |
+
+## Architecture
+
+```
+User question → Router (LLM) → MCP server (policy) → tools → data.py → open data CSVs
 ```
 
-Both keys are required. Without a working `ANTHROPIC_API_KEY` nothing starts:
-not your agent, the console, `ask.py` or the evaluation. Without
-`WANDB_API_KEY` the evaluation does not run.
 
-## Run
+## Getting Started
+
+**Prerequisites:** Docker, Python 3.10+ [confirm]
+
+```bash
+git clone <repo-url>
+cd <repo>
+docker compose -f docker/compose.yml up -d
+```
+
+Run the evaluation suite:
+
+```bash
+docker compose -f docker/compose.yml exec policy \
+  python src/eval/run_eval.py \
+  --url http://127.0.0.1:8002/mcp \
+  --tasks src/eval/tasks.policy.v1.json
+```
+
+## Evaluation
+
+16 test cases covering tool selection, tool return values, malformed input and
+out-of-range handling. Expected values were computed by an independent script
+(`verify_ground_truth.py`) that does not import the project code; see
+`GROUND_TRUTH_RECORD.md` for the traceability record.
+
+## Key Findings
+
+- Citytrain on-time running vs complaint rate: r ≈ -0.56 (raw), -0.53 (differenced), the most consistent signal
+- Punctuality vs patronage: no significant relationship in either form
+- Known limitations: ~30 months of data, no causal identification, [others]
+
+## Project Structure
+
+```
+src/
+  agents/policy.py     # tool definitions
+  data.py              # data loading and cleaning
+  eval/                # eval runner and task cases
+docker/compose.yml
+```
+
+## References
+
+- Wagner et al. (2002), segmented regression for interrupted time series
+- Hawa et al. (2023), complaints as a proxy for perceived service quality
+- [add the rest from your report]
+
+## License & Acknowledgements
+
+Data: Queensland Government, CC-BY 3.0. Built for REIT7820, The University of Queensland.
 
 ```bash
 docker compose up -d --build                        # your agent on :8000, the console on :8080
@@ -50,25 +129,6 @@ docker compose logs -f policy            # your agent's log
 docker compose ps                       # what is running
 docker compose down                     # stop
 ```
-
-## Build your agent
-
-Open `src/agents/policy.py`:
-
-1. Set `AGENT_NAME` to `smac-policy-<your approved slot>`, and `VERSION`.
-2. Read `get_patronage`, the worked example. Then replace it with your own tools:
-   one to five, named verb-first in snake_case.
-3. Rebuild with `docker compose up -d --build policy`.
-
-The Orchestrator never reads your code. It chooses tools from their names,
-descriptions and parameter descriptions alone, and their quality is graded. A
-good description says what the tool does, where it is valid, how fresh its data
-is, and what it does **not** do. Record v1 and v2 of each in `src/descriptions.md`.
-
-- Return through `respond(...)`, so every response carries `sources`.
-- Decline what you cannot answer with `out_of_scope(...)`. Never invent an answer.
-- Compute numbers in code, and let the model only write prose about them. Use
-  `geocode_place` instead of letting a model recall a coordinate.
 
 ## Evaluate
 
@@ -129,29 +189,5 @@ docker compose run --rm handshake
 It ends with `HANDSHAKE PASSED`, or tells you what to fix. It also writes
 `handshake_report.json`, which you commit as your proof.
 
-## Choose the model
 
-Your agent runs on `claude-haiku-4-5` unless you choose another tier:
-`claude-haiku-4-5`, `claude-sonnet-5` or `claude-opus-5`. The model in use is
-reported by `health` and recorded with every W&B run.
-
-To set it until you change it, add a line to `.env`, then restart:
-
-```bash
-LLM_MODEL=claude-sonnet-5
 ```
-
-```bash
-docker compose up -d policy
-```
-
-To use it for one run only, set it on the command line:
-
-```bash
-LLM_MODEL=claude-sonnet-5 docker compose up -d policy
-docker compose exec policy python eval/run_eval.py --tasks eval/tasks.policy.json
-docker compose up -d policy              # back to the .env setting
-```
-
-Every Claude call your agent makes is appended to `logs/usage.jsonl`, with its
-model, tokens and latency.
